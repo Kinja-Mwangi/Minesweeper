@@ -15,7 +15,7 @@ class Map
     {
         public : char _type;
         public : char _symbol;
-        public : int _mineCount;
+        public : int _mineCount = 0;
 
         public : Cell()
         {
@@ -36,11 +36,6 @@ class Map
                 _symbol = _mineCount + 48;
             }
 
-            else if (_type >= '1' && _type <= '8')
-            {
-                _symbol = _type;
-            }
-
             else if (_type == 'M')
             {
                 _symbol = 'X';
@@ -54,8 +49,7 @@ class Map
 
         public : void UnFlag()
         {
-            _type = 'E';
-            _symbol = 'o';
+            _symbol = 'o'; // because you can only flag unopened cells
         }
     };
 
@@ -182,25 +176,25 @@ class Map
         if (_pos >= _size && input == 'U') // if not on top row
         {
             _pos -= _size;
-            Cursor(_size, _grid[_pos + _size]._symbol);
+            // Cursor(_size, _grid[_pos + _size]._symbol);
         }
 
         else if (_pos < _size * (_size - 1) && input == 'D') // if not on bottom row
         {
             _pos += _size;
-            Cursor(-_size, _grid[_pos - _size]._symbol);
+            // Cursor(-_size, _grid[_pos - _size]._symbol);
         }
 
         else if (_pos % _size != 0 && input == 'L') // if not on left column
         {
             _pos--;
-            Cursor(1, _grid[_pos + 1]._symbol);
+            // Cursor(1, _grid[_pos + 1]._symbol);
         }
 
         else if ((_pos + 1) % _size != 0 && input == 'R') // if not on right column
         {
             _pos++;
-            Cursor(-1, _grid[_pos - 1]._symbol);
+            // Cursor(-1, _grid[_pos - 1]._symbol);
         }
 
         else if (input == 'A')
@@ -212,7 +206,7 @@ class Map
                 _gameSet = true;
             }
 
-            if (_grid[_pos]._type != 'F' && _grid[_pos]._type != 'O')
+            if (_grid[_pos]._symbol != 'o')
             {
                 _grid[_pos].Open();
             }
@@ -220,7 +214,7 @@ class Map
 
         else if (input == 'B')
         {
-            if (_grid[_pos]._type != 'F' && _grid[_pos]._type != 'O' && (_grid[_pos]._type < '1' || _grid[_pos]._type > '8'))
+            if (_grid[_pos]._symbol == 'o')
             {
                 _grid[_pos].Flag();
             }
@@ -237,14 +231,14 @@ class Map
 
     }
 
-    void Cursor(int move, char pSymbol)
-    {
-        if (_pos != 0)
-        {
-            _grid[_pos + move]._symbol = pSymbol;
-            _grid[_pos]._symbol = '@';
-        }
-    }
+    // void Cursor(int move, char pSymbol)
+    // {
+    //     if (_pos != 0)
+    //     {
+    //         _grid[_pos + move]._symbol = pSymbol;
+    //         _grid[_pos]._symbol = '@';
+    //     }
+    // }
 
 
     public : void DisplayMap()
@@ -252,6 +246,11 @@ class Map
         for (int i = 0; i < _size * _size; i++)
         {
             printf("%c ", _grid[i]._symbol);
+
+            if (i == _pos)
+            {
+                printf("@");
+            }
             
             if ((i + 1) % _size == 0 && i > 0)
             {

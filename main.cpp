@@ -74,6 +74,86 @@ class Map
         }
     }
 
+    public : Cell* GetNeighbours(int pos)
+    {
+        static Cell neighbours[9];
+        int count = 0;
+
+        if (pos % _size != 0) // if not on left column
+        {
+            if (pos >= _size) // if not on top row
+            {
+                if (_grid[pos - (_size + 1)]._type == 'M') // top left
+                {
+                    count++;
+                    neighbours[count] = _grid[pos - (_size + 1)];
+                }
+            }
+
+            if (_grid[pos - 1]._type == 'M') // centre left
+            {
+                count++;
+                neighbours[count] = _grid[pos - 1];
+            }
+
+            if (pos < (_size * (_size - 1))) // if not on bottom row
+            {
+                if (_grid[pos + (_size - 1)]._type == 'M') // bottom left
+                {
+                    count++;
+                    neighbours[count] = _grid[pos + (_size - 1)];
+                }
+            }
+        }
+
+        if ((pos + 1) % _size != 0) // if not on right column
+        {
+            if (pos >= _size) // if not on top row
+            {
+                if (_grid[pos - (_size - 1)]._type == 'M') // top right
+                {
+                    count++;
+                    neighbours[count] = _grid[pos - (_size - 1)];
+                }
+            }
+
+            if (_grid[pos + 1]._type == 'M') // centre right
+            {
+                count++;
+                neighbours[count] = _grid[pos + 1];
+            }
+
+            if (pos < (_size * (_size - 1))) // if not on bottom row
+            {
+                if (_grid[pos + (_size + 1)]._type == 'M') //bottom right
+                {
+                    count++;
+                    neighbours[count] = _grid[pos + (_size + 1)];
+                }
+            }
+        }
+
+        if (pos >= _size) // if not on top row
+        {
+            if (_grid[pos - _size]._type == 'M') // top centre
+            {
+                count++;
+                neighbours[count] = _grid[pos - _size];
+            }
+        }
+
+        if (pos < (_size * (_size - 1))) // if not on bottom row
+        {
+            if (_grid[pos + _size]._type == 'M') // bottom centre
+            {
+                count++;
+                neighbours[count] = _grid[pos + _size];
+            }
+        }
+
+        return neighbours[];
+    }
+
     public : void PlaceMines()
     {
         for (int i = 0; i < _mineCount; i++)
@@ -96,8 +176,8 @@ class Map
         {
             // int count = 0;
 
-            if (_grid[i]._type != 'M')
-            {
+            // if (_grid[i]._type != 'M')
+            // {
                 if (i % _size != 0) // if not on left column
                 {
                     if (i >= _size) // if not on top row
@@ -161,7 +241,7 @@ class Map
                         _grid[i]._mineCount++;
                     }
                 }
-            }
+            // }
 
             // if (count > 0)
             // {
@@ -206,9 +286,12 @@ class Map
                 _gameSet = true;
             }
 
-            if (_grid[_pos]._symbol != 'o')
+            if (_grid[_pos]._symbol == 'o')
             {
                 _grid[_pos].Open();
+
+                // TO DO : Add flood fill
+                // TO DO : Find good way of getting all adjacent cells as a char array
             }
         }
 
@@ -245,11 +328,14 @@ class Map
     {
         for (int i = 0; i < _size * _size; i++)
         {
-            printf("%c ", _grid[i]._symbol);
-
             if (i == _pos)
             {
-                printf("@");
+                printf("@ ");
+            }
+
+            else
+            {
+                printf("%c ", _grid[i]._symbol);
             }
             
             if ((i + 1) % _size == 0 && i > 0)

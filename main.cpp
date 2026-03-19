@@ -292,11 +292,12 @@ class Map
 
             for (int i = 0; i < 8; i++)
             {
-                pos = GetNeighbours(pos)[i];
+                int neighbour = GetNeighbours(pos)[i];
+                // pos = GetNeighbours(pos)[i];
 
-                if (_grid[pos]._symbol == 'o' && _grid[pos]._type == 'E')
+                if (_grid[neighbour]._symbol == 'o' && _grid[neighbour]._type == 'E' && neighbour < _size * _size /*dodgey workaround*/)
                 {
-                    queue[tail++] = pos;
+                    queue[tail++] = neighbour;
                 }
             }
 
@@ -361,9 +362,16 @@ class Map
             }
 
             if (_grid[_pos]._symbol == 'o')
-            {
-                // _grid[_pos].Open();
-                FloodFill(_pos);
+            {   
+                if (_grid[_pos]._mineCount == 0)
+                {
+                    FloodFill(_pos);
+                }
+
+                else
+                {
+                    _grid[_pos].Open();
+                }
                 // TO DO : Add flood fill
             }
         }
@@ -406,10 +414,10 @@ class Map
                 printf("@ ");
             }
 
-            // else if (_grid[i]._type == 'M')
-            // {
-            //     printf("X ");
-            // }
+            else if (_grid[i]._type == 'M')
+            {
+                printf("X ");
+            }
 
             // else if (_grid[i]._mineCount > 0)
             // {
@@ -490,7 +498,7 @@ int main()
 
     // srand(HAL_GetTick());
 
-    Map m(8, 8, 16);
+    Map m(18, 39, 40);
     
     printf("Welcome To Minesweeper!\n\n");
 

@@ -23,7 +23,7 @@ class Map
             _symbol = 'o';
         }
 
-        public : Cell(char type, char symbol)
+        public : Cell(char type, char symbol, int pos)
         {
             _type = type;
             _symbol = symbol;
@@ -66,13 +66,13 @@ class Map
         _grid = new Cell[_size * _size];
     }
 
-    public : void Reset()
-    {
-        for (int i = 0; i < _size * _size; i++)
-        {
-            _grid[i] = Cell('E', 'o');
-        }
-    }
+    // public : void Reset()
+    // {
+    //     for (int i = 0; i < _size * _size; i++)
+    //     {
+    //         _grid[i] = Cell('E', 'o');
+    //     }
+    // }
 
     public : int* GetNeighbours(int pos)
     {
@@ -260,6 +260,70 @@ class Map
         }
     }
 
+    void FloodFill(int start)
+    {
+        int queue[_size * _size]; // max possible
+        int head = 0;
+        int tail = 0;
+
+        // add starting cell
+        queue[tail++] = start;
+
+        while (head < tail)
+        {
+            int pos = queue[head++];
+            Cell& cell = _grid[pos]; // taking this cell by reference so any changes to cell in the method are applied to the actual cell
+
+            // skip if already revealed or flagged
+            if (cell._symbol != 'o' || cell._symbol == 'F' || cell._type == 'M')
+            {
+                continue;
+            }
+
+            cell.Open();
+
+            // only expand if it's a 0
+            if (cell._mineCount != 0)
+            {
+                continue;
+            }
+
+            // check neighbours
+
+            for (int i = 0; i < 8; i++)
+            {
+                pos = GetNeighbours(pos)[i];
+
+                if (_grid[pos]._symbol == 'o' && _grid[pos]._type == 'E')
+                {
+                    queue[tail++] = pos;
+                }
+            }
+
+            // for (int dy = -1; dy <= 1; dy++)
+            // {
+            //     for (int dx = -1; dx <= 1; dx++)
+            //     {
+            //         if (dx == 0 && dy == 0) continue;
+
+            //         int nx = p.x + dx;
+            //         int ny = p.y + dy;
+
+            //         // bounds check
+            //         if (nx >= 0 && nx < _size && ny >= 0 && ny < _size)
+            //         {
+            //             Cell& neighbour = getCell(nx, ny);
+
+            //             if (!neighbour._revealed && !neighbour._flagged)
+            //             {
+            //                 queue[tail++] = {nx, ny};
+            //             }
+            //         }
+            //     }
+            // }
+        }
+    }
+
     public : void Update(char input)
     {
         if (_pos >= _size && input == 'U') // if not on top row
@@ -298,8 +362,8 @@ class Map
 
             if (_grid[_pos]._symbol == 'o')
             {
-                _grid[_pos].Open();
-
+                // _grid[_pos].Open();
+                FloodFill(_pos);
                 // TO DO : Add flood fill
             }
         }
@@ -342,15 +406,15 @@ class Map
                 printf("@ ");
             }
 
-            else if (_grid[i]._type == 'M')
-            {
-                printf("X ");
-            }
+            // else if (_grid[i]._type == 'M')
+            // {
+            //     printf("X ");
+            // }
 
-            else if (_grid[i]._mineCount > 0)
-            {
-                printf("%d ", _grid[i]._mineCount);
-            }
+            // else if (_grid[i]._mineCount > 0)
+            // {
+            //     printf("%d ", _grid[i]._mineCount);
+            // }
 
             else
             {

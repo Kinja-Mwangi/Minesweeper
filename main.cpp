@@ -180,7 +180,7 @@ class Map
         for (int i = 0; i < _size * _size; i++)
         {
             // Place numbers using GetNeighbours
-            for (int j = 0; j < 8; j++) // TO DO : Fix this so GetNeighbours can be used
+            for (int j = 0; j < 8; j++)
             {
                 if (_grid[GetNeighbours(i)[j]]._type == 'M')
                 {
@@ -511,7 +511,7 @@ char GetInput()
 
 int main()
 {
-    Map m(10, 10, 18); // if _maxMines is less than 18, the game crashes after pressing A
+    Map m(10, 10, 18); // if _maxMines is less than 18 (for a 10x10 map), the game crashes after attempting initialisation
     
     // printf("Welcome To Minesweeper!\n\n");
 

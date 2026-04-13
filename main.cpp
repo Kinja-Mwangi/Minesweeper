@@ -147,6 +147,7 @@ class Map
                 valid = true;
                 randCell = RNG(0, _size * _size);
 
+
                 if (_grid[randCell]._type == 'M' || randCell == _pos)
                 {
                     valid = false;
@@ -154,14 +155,21 @@ class Map
 
                 else
                 {
-                    if (randCell == _pos || randCell == _pos - 1 || randCell == _pos + 1 || randCell == _pos - _size || randCell == _pos - _size - 1 || randCell == _pos - _size + 1 || randCell == _pos + _size || randCell == _pos + _size - 1 || randCell == _pos + _size + 1)
+                    // if (randCell == _pos || randCell == _pos - 1 || randCell == _pos + 1 || randCell == _pos - _size || randCell == _pos - _size - 1 || randCell == _pos - _size + 1 || randCell == _pos + _size || randCell == _pos + _size - 1 || randCell == _pos + _size + 1)
+                    // {
+                    //     valid = false;
+                    // }
+                
+                    for (int j = 0; j < 8; j++)
                     {
-                        valid = false;
+                        if (randCell == GetNeighbours(_pos)[j])
+                        {
+                            valid = false;
+                        }
                     }
                 }
             }
             while (!valid);
-            // while (_grid[randCell]._type == 'M' || randCell == _pos || randCell == _pos - 1 || randCell == _pos + 1 || randCell == _pos - _size || randCell == _pos - _size - 1 || randCell == _pos - _size + 1 || randCell == _pos + _size || randCell == _pos + _size - 1 || randCell == _pos + _size + 1);
 
             _grid[randCell]._type = 'M';
         }

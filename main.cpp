@@ -184,7 +184,7 @@ class Game
         return neighbours;
     }
 
-    void PlaceMines()
+    void PlaceMines(int pos)
     {
         for (int i = 0; i < _totalMines; i++)
         {
@@ -197,21 +197,21 @@ class Game
                 randCell = RNG(0, _size * _size);
 
 
-                if (_grid[randCell]._type == 'M' || randCell == _pos)
+                if (_grid[randCell]._type == 'M' || randCell == pos)
                 {
                     valid = false;
                 }
 
-                // else
-                // {
-                //     for (int j = 0; j < 8; j++)
-                //     {
-                //         if (randCell == GetNeighbours(_pos)[j])
-                //         {
-                //             valid = false;
-                //         }
-                //     }
-                // }
+                else
+                {
+                    for (int j = 0; j < 8; j++)
+                    {
+                        if (randCell == GetNeighbours(pos)[j])
+                        {
+                            valid = false;
+                        }
+                    }
+                }
             }
             while (!valid);
 
@@ -267,6 +267,28 @@ class Game
             }
         }
     }
+    
+    void Chord(int pos)
+    {
+        int* neighbours = GetNeighbours(pos);
+        int flagCount = 0;
+
+        for (int i = 0; i < 8; i++)
+        {
+            if (_grid[neighbours[i]]._symbol == 'F')
+            {
+                flagCount++;
+            }
+        }
+
+        if (flagCount == _grid[pos]._mineCount)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                _grid[neighbours[i]].Open();
+            }
+        }
+    }
 
     char GetInput()
     {
@@ -315,7 +337,49 @@ class Game
         return input;
     }
 
+    void GameOver()
+    {
+        char gridString[_size * _size];
 
+        for (int i = 0; i < _size * _size; i++)
+        {
+            gridString[i] = _grid[i]._symbol;
+        }
+
+        if (Contains(gridString, _size * _size, 'X'))
+        {
+            for (int j = 0; j < _size * _size; j++)
+            {
+                if (_grid[j]._type == 'M')
+                {
+                    _grid[j]._symbol = 'X';
+                }
+            }
+
+            Display();
+            thread_sleep_for(3000);
+            lcd.cls();
+            lcd.printf("Game Over!\nYou Lose...");
+
+            while (true)
+            {
+                sleep();
+            }
+        }
+
+        else if (!Contains(gridString, _size * _size, '+'))
+        {
+            Display();
+            thread_sleep_for(3000);
+            lcd.cls();
+            lcd.printf("Congratulations!\nYou Win!");
+
+            while (true)
+            {
+                sleep();
+            }
+        }
+    }
 
     public : void Update()
     {
@@ -355,7 +419,7 @@ class Game
                 if (!_gameInitialized)
                 {
                     srand(HAL_GetTick()); // seed RNG
-                    PlaceMines();
+                    PlaceMines(_pos);
                     PlaceNumbers();
                     _gameInitialized = true;
                 }
@@ -364,6 +428,11 @@ class Game
                 {
                     FloodFill(_pos);
                 }
+
+                // else if (_grid[_pos]._mineCount > 0)
+                // {
+                //     Chord(_pos);
+                // }
                 break;
 
             case 'B':
@@ -393,12 +462,14 @@ class Game
             _start += _size;
             _end += _size;
         }
+
+        GameOver();
     }
 
     // Display on LCD
     public : void Display()
     {
-        lcd.locate(0, 0);
+        lcd.locate(10 - _size, 0);
 
         // char cursor = '#';
         lcd.writeCustomCharacter(unopenedCell, 1);
@@ -472,7 +543,7 @@ class Game
 
             if ((i + 1) % _size == 0)
             {
-                lcd.locate(0, (i + 1 - _start) / _size); // locates the next line (from 1 to 3) on the LCD display when a full row of the grid has been printed
+                lcd.locate(10 - _size, (i + 1 - _start) / _size); // locates the next line (from 1 to 3) on the LCD display when a full row of the grid has been printed
             }
         }
     }
@@ -522,7 +593,7 @@ class Game
 int main()
 {
     printf("Welcome To Minesweeper!\n\n");
-    Game g(10, 10, 20);
+    Game g(7, 5, 10);
 
     while (true)
     {

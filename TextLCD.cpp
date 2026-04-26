@@ -157,3 +157,15 @@ int TextLCD::rows() {
             return 2;
     }
 }
+
+void TextLCD::writeCustomCharacter(const char charMap[], int location)
+{
+    location &= 0x7; // only 0–7 allowed
+
+    writeCommand(0x40 | (location << 3)); // set CGRAM address
+
+    for (int i = 0; i < 8; i++)
+    {
+        writeData(charMap[i]);
+    }
+}

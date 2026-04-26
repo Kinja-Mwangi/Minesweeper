@@ -88,6 +88,9 @@ public:
     int rows();
     int columns();
 
+    void writeCustomCharacter(const char charMap[], int location);
+
+
 protected:
 
     // Stream implementation functions

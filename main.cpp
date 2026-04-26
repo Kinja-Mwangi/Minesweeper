@@ -1,10 +1,31 @@
 #include "mbed.h"
-#include <cstdlib>
-#include <time.h>
-#include <ctype.h>
 #include "TextLCD.h"
+#include <ctype.h>
+#include <time.h>
 
 TextLCD lcd(D0, D1, D2, D3, D4, D5, TextLCD::LCD20x4); // Connect these nucleo pins to RS, E, D4, D5, D6 and D7 pins of the LCD
+
+// Custom characters
+char unopenedCell[8] = {0x0D, 0x16, 0x1B, 0x0D, 0x16, 0x1B, 0x0D, 0x16};
+char emptyCell[8] = {0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E};
+char flag[8] = {0x08, 0x0C, 0x0E, 0x0F, 0x08, 0x08, 0x1E, 0x00};
+char mine[8] = {0x00, 0x15, 0x0E, 0x1F, 0x0E, 0x15, 0x00, 0x00};
+
+// Inverted versions of the custom characters
+char unopenedCellInverted[8] = {0x12, 0x09, 0x04, 0x12, 0x09, 0x04, 0x12, 0x09};
+char emptyCellInverted[8] = {0x11, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x11};
+char flagInverted[8] = {0x17, 0x13, 0x11, 0x10, 0x17, 0x17, 0x01, 0x1F};
+// char mineInverted[8] = {0x1F, 0x0A, 0x11, 0x00, 0x11, 0x0A, 0x1F, 0x1F};
+char mineCountsInverted[8][8] = {
+    {0x1B, 0x13, 0x1B, 0x1B, 0x1B, 0x1B, 0x11, 0x1F}, // 1
+    {0x11, 0x0E, 0x1E, 0x1D, 0x1B, 0x17, 0x00, 0x1F}, // 2
+    {0x00, 0x1D, 0x1B, 0x1D, 0x1E, 0x0E, 0x11, 0x1F}, // 3
+    {0x1D, 0x19, 0x15, 0x0D, 0x00, 0x1D, 0x1D, 0x1F}, // 4
+    {0x00, 0x0F, 0x01, 0x1E, 0x1E, 0x0E, 0x11, 0x1F}, // 5
+    {0x19, 0x17, 0x0F, 0x01, 0x0E, 0x0E, 0x11, 0x1F}, // 6
+    {0x00, 0x1E, 0x1D, 0x1B, 0x17, 0x17, 0x17, 0x1F}, // 7
+    {0x11, 0x0E, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x1F} // 8
+};
 
 int RNG(int lB, int uB) // lB inclusive, uB exclusive
 {
@@ -38,7 +59,7 @@ bool Contains(char* array, int size, char item)
     return false;
 }
 
-class Map
+class Game
 {
     private : class Cell
     {
@@ -46,7 +67,7 @@ class Map
         public : char _symbol;
         public : int _mineCount = 0;
 
-        public : Cell()
+        public : Cell() // Default constructor
         {
             _type = 'E';
             _symbol = '+';
@@ -82,26 +103,26 @@ class Map
         }
     };
 
-    public : int _size;
+    int _size;
     int _totalMines;
     Cell* _grid;
-    public : int _pos = 0;
+    int _pos = 0;
     bool _gameInitialized = false;
-    public : int _start = 0;
-    public : int _end;
+    int _start = 0;
+    int _end;
 
-    public : Map(int size, int minMines, int maxMines)
+    public : Game(int size, int minMines, int maxMines)
     {
         _size = size;
-        scanf("%d", &_totalMines);
-        _totalMines = _totalMines % (_size * _size);
-        // _totalMines = RNG(minMines, maxMines + 1);
-        printf("\nTotal Mines: %d\n", _totalMines);
+        // scanf("%d", &_totalMines);
+        // _totalMines = _totalMines % (_size * _size);
+        // printf("\nTotal Mines: %d\n", _totalMines);
+        _totalMines = RNG(minMines, maxMines + 1);
         _grid = new Cell[_size * _size];
         _end = (_size * 4) - 1;
     }
 
-    public : int* GetNeighbours(int pos)
+    int* GetNeighbours(int pos)
     {
         static int neighbours[8];
 
@@ -163,7 +184,7 @@ class Map
         return neighbours;
     }
 
-    public : void PlaceMines()
+    void PlaceMines()
     {
         for (int i = 0; i < _totalMines; i++)
         {
@@ -181,16 +202,16 @@ class Map
                     valid = false;
                 }
 
-                else
-                {
-                    for (int j = 0; j < 8; j++)
-                    {
-                        if (randCell == GetNeighbours(_pos)[j])
-                        {
-                            valid = false;
-                        }
-                    }
-                }
+                // else
+                // {
+                //     for (int j = 0; j < 8; j++)
+                //     {
+                //         if (randCell == GetNeighbours(_pos)[j])
+                //         {
+                //             valid = false;
+                //         }
+                //     }
+                // }
             }
             while (!valid);
 
@@ -198,7 +219,7 @@ class Map
         }
     }
 
-    public : void PlaceNumbers()
+    void PlaceNumbers()
     {
         for (int i = 0; i < _size * _size; i++)
         {
@@ -294,6 +315,8 @@ class Map
         return input;
     }
 
+
+
     public : void Update()
     {
         char input = GetInput();
@@ -339,17 +362,7 @@ class Map
 
                 if (_grid[_pos]._symbol == '+')
                 {
-                    if (_grid[_pos]._mineCount == 0)
-                    {
-                        FloodFill(_pos);
-                    }
-
-                    else
-                    {
-                        _grid[_pos].Open();
-                    }
-
-                    // FloodFill(_pos);
+                    FloodFill(_pos);
                 }
                 break;
 
@@ -363,6 +376,9 @@ class Map
                 {
                     _grid[_pos].UnFlag();
                 }
+                break;
+
+            default:
                 break;
         }
 
@@ -382,31 +398,83 @@ class Map
     // Display on LCD
     public : void Display()
     {
-        char cursor = '#';
-        lcd.locate(0,0);
+        lcd.locate(0, 0);
+
+        // char cursor = '#';
+        lcd.writeCustomCharacter(unopenedCell, 1);
+        lcd.writeCustomCharacter(emptyCell, 2);
+        lcd.writeCustomCharacter(flag, 3);
+        lcd.writeCustomCharacter(mine, 4);
+        lcd.writeCustomCharacter(unopenedCellInverted, 5);
+        lcd.writeCustomCharacter(emptyCellInverted, 6);
+        lcd.writeCustomCharacter(flagInverted, 7);
 
         for (int i = _start; i <= _end; i++)
         {
             if (i == _pos)
             {
-                lcd.printf("%c ", cursor);
-            }
+                // lcd.printf("%c ", cursor);
 
-            else if (_grid[i]._symbol == '+')
-            {
-                lcd.printf("%c ", 219);
+                if (_grid[i]._symbol == '+')
+                {
+                    lcd.printf("%c ", 5);
+                }
+
+                else if (_grid[i]._symbol == '0')
+                {
+                    lcd.printf("%c ", 6);
+                }
+
+                else if (_grid[i]._symbol == 'F')
+                {
+                    lcd.printf("%c ", 7);
+                }
+
+                else if (_grid[i]._symbol == 'X')
+                {
+                    lcd.printf("%c ", 4);
+                }
+
+                else if (_grid[i]._symbol >= 48 && _grid[i]._symbol <= 56)
+                {
+                    lcd.writeCustomCharacter(mineCountsInverted[_grid[i]._mineCount - 1], 8);
+                    lcd.printf("%c ", 8);
+                }
             }
 
             else
             {
-                lcd.printf("%c ", _grid[i]._symbol);
+                if (_grid[i]._symbol == '+')
+                {
+                    lcd.printf("%c ", 1);
+                }
+
+                else if (_grid[i]._symbol == '0')
+                {
+                    lcd.printf("%c ", 2);
+                }
+
+                else if (_grid[i]._symbol == 'F')
+                {
+                    lcd.printf("%c ", 3);
+                }
+
+                else if (_grid[i]._symbol == 'X')
+                {
+                    lcd.printf("%c ", 4);
+                }
+
+                else
+                {
+                    lcd.printf("%c ", _grid[i]._symbol);
+                }
             }
 
             if ((i + 1) % _size == 0)
             {
                 lcd.locate(0, (i + 1 - _start) / _size); // locates the next line (from 1 to 3) on the LCD display when a full row of the grid has been printed
             }
-        }            
+        }
     }
 
     // Display on serial port terminal (Coolterm)
@@ -454,12 +522,12 @@ class Map
 int main()
 {
     printf("Welcome To Minesweeper!\n\n");
-    Map m(10, 0, 10);
+    Game g(10, 10, 20);
 
     while (true)
     {
-        m.Display();
-        m.Print();
-        m.Update();
+        g.Display();
+        g.Print();
+        g.Update();
     }
 }

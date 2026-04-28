@@ -104,7 +104,7 @@ class Game
     };
 
     int _size;
-    int _totalMines;
+    public : int _totalMines;
     Cell* _grid;
     int _pos = 0;
     bool _gameInitialized = false;
@@ -285,7 +285,10 @@ class Game
         {
             for (int i = 0; i < 8; i++)
             {
-                _grid[neighbours[i]].Open();
+                if (_grid[neighbours[i]]._symbol == '+')
+                {
+                    FloodFill(neighbours[i]);
+                }
             }
         }
     }
@@ -339,16 +342,39 @@ class Game
 
     void GameOver()
     {
-        char gridString[_size * _size];
+        bool win = true;
+        bool lose = false;
 
         for (int i = 0; i < _size * _size; i++)
         {
-            gridString[i] = _grid[i]._symbol;
+            if (_grid[i]._symbol == '+' && _grid[i]._type != 'M')
+            {
+                win = false;
+            }
+
+            else if (_grid[i]._symbol == 'X')
+            {
+                win = false;
+                lose = true;
+                break;
+            }
         }
 
-        if (Contains(gridString, _size * _size, 'X'))
+        if (win)
         {
-            for (int j = 0; j < _size * _size; j++)
+            thread_sleep_for(3000);
+            lcd.cls();
+            lcd.printf("Congratulations!\nYou Win!");
+
+            while (true)
+            {
+                sleep();
+            }
+        }
+
+        else if (lose)
+        {
+            for (int j = 0; j < _size * _size; j++) // Reveal all mines
             {
                 if (_grid[j]._type == 'M')
                 {
@@ -357,22 +383,9 @@ class Game
             }
 
             Display();
-            thread_sleep_for(3000);
+            thread_sleep_for(5000);
             lcd.cls();
             lcd.printf("Game Over!\nYou Lose...");
-
-            while (true)
-            {
-                sleep();
-            }
-        }
-
-        else if (!Contains(gridString, _size * _size, '+'))
-        {
-            Display();
-            thread_sleep_for(3000);
-            lcd.cls();
-            lcd.printf("Congratulations!\nYou Win!");
 
             while (true)
             {
@@ -429,14 +442,14 @@ class Game
                     FloodFill(_pos);
                 }
 
-                // else if (_grid[_pos]._mineCount > 0)
-                // {
-                //     Chord(_pos);
-                // }
+                else if (_grid[_pos]._mineCount > 0)
+                {
+                    Chord(_pos);
+                }
                 break;
 
             case 'B':
-                if (_grid[_pos]._symbol == '+')
+                if (_grid[_pos]._symbol == '+' && _gameInitialized)
                 {
                     _grid[_pos].Flag();
                 }
@@ -593,7 +606,7 @@ class Game
 int main()
 {
     printf("Welcome To Minesweeper!\n\n");
-    Game g(7, 5, 10);
+    Game g(8, 6, 12);
 
     while (true)
     {

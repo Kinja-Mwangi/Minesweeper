@@ -5,28 +5,6 @@
 
 TextLCD lcd(D0, D1, D2, D3, D4, D5, TextLCD::LCD20x4); // Connect these nucleo pins to RS, E, D4, D5, D6 and D7 pins of the LCD
 
-// Custom characters
-char unopenedCell[8] = {0x0D, 0x16, 0x1B, 0x0D, 0x16, 0x1B, 0x0D, 0x16};
-char emptyCell[8] = {0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E};
-char flag[8] = {0x08, 0x0C, 0x0E, 0x0F, 0x08, 0x08, 0x1E, 0x00};
-char mine[8] = {0x00, 0x15, 0x0E, 0x1F, 0x0E, 0x15, 0x00, 0x00};
-
-// Inverted versions of the custom characters
-char unopenedCellInverted[8] = {0x12, 0x09, 0x04, 0x12, 0x09, 0x04, 0x12, 0x09};
-char emptyCellInverted[8] = {0x11, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x11};
-char flagInverted[8] = {0x17, 0x13, 0x11, 0x10, 0x17, 0x17, 0x01, 0x1F};
-// char mineInverted[8] = {0x1F, 0x0A, 0x11, 0x00, 0x11, 0x0A, 0x1F, 0x1F};
-char mineCountsInverted[8][8] = {
-    {0x1B, 0x13, 0x1B, 0x1B, 0x1B, 0x1B, 0x11, 0x1F}, // 1
-    {0x11, 0x0E, 0x1E, 0x1D, 0x1B, 0x17, 0x00, 0x1F}, // 2
-    {0x00, 0x1D, 0x1B, 0x1D, 0x1E, 0x0E, 0x11, 0x1F}, // 3
-    {0x1D, 0x19, 0x15, 0x0D, 0x00, 0x1D, 0x1D, 0x1F}, // 4
-    {0x00, 0x0F, 0x01, 0x1E, 0x1E, 0x0E, 0x11, 0x1F}, // 5
-    {0x19, 0x17, 0x0F, 0x01, 0x0E, 0x0E, 0x11, 0x1F}, // 6
-    {0x00, 0x1E, 0x1D, 0x1B, 0x17, 0x17, 0x17, 0x1F}, // 7
-    {0x11, 0x0E, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x1F} // 8
-};
-
 int RNG(int lB, int uB) // lB inclusive, uB exclusive
 {
     int r = uB - lB;
@@ -63,43 +41,32 @@ class Game
 {
     private : class Cell
     {
-        public : char _type;
-        public : char _symbol;
-        public : int _mineCount = 0;
+        public : bool _opened;
+        public : bool _flagged;
+        public : bool _mine;
+        public : int _mineCount;
 
         public : Cell() // Default constructor
         {
-            _type = 'E';
-            _symbol = '+';
-        }
-
-        public : Cell(char type, char symbol, int pos)
-        {
-            _type = type;
-            _symbol = symbol;
+            _opened = false;
+            _flagged = false;
+            _mine = false;
+            _mineCount = 0;
         }
 
         public : void Open()
         {
-            if (_type == 'E')
-            {
-                _symbol = _mineCount + 48; // convert mine count into a character
-            }
-
-            else if (_type == 'M')
-            {
-                _symbol = 'X';
-            }
+            _opened = true;
         }
 
         public : void Flag()
         {
-            _symbol = 'F';
+            _flagged = true;
         }
 
         public : void UnFlag()
         {
-            _symbol = '+';
+            _flagged = false;
         }
     };
 
@@ -111,15 +78,42 @@ class Game
     int _start = 0;
     int _end;
 
+    // Custom characters
+    char unopenedCell[8] = {0x0D, 0x16, 0x1B, 0x0D, 0x16, 0x1B, 0x0D, 0x16};
+    char emptyCell[8] = {0x0E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0E};
+    char flag[8] = {0x08, 0x0C, 0x0E, 0x0F, 0x08, 0x08, 0x1E, 0x00};
+    char mine[8] = {0x00, 0x15, 0x0E, 0x1F, 0x0E, 0x15, 0x00, 0x00};
+    char flower[8] = {0x0E, 0x11, 0x15, 0x11, 0x0E, 0x06, 0x04, 0x0E};
+
+    // Inverted versions of the custom characters
+    char unopenedCellInverted[8] = {0x12, 0x09, 0x04, 0x12, 0x09, 0x04, 0x12, 0x09};
+    char emptyCellInverted[8] = {0x11, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x11};
+    char flagInverted[8] = {0x17, 0x13, 0x11, 0x10, 0x17, 0x17, 0x01, 0x1F};
+    // char mineInverted[8] = {0x1F, 0x0A, 0x11, 0x00, 0x11, 0x0A, 0x1F, 0x1F};
+    char mineCountsInverted[8][8] = 
+        {{0x1B, 0x13, 0x1B, 0x1B, 0x1B, 0x1B, 0x11, 0x1F}, // 1
+        {0x11, 0x0E, 0x1E, 0x1D, 0x1B, 0x17, 0x00, 0x1F}, // 2
+        {0x00, 0x1D, 0x1B, 0x1D, 0x1E, 0x0E, 0x11, 0x1F}, // 3
+        {0x1D, 0x19, 0x15, 0x0D, 0x00, 0x1D, 0x1D, 0x1F}, // 4
+        {0x00, 0x0F, 0x01, 0x1E, 0x1E, 0x0E, 0x11, 0x1F}, // 5
+        {0x19, 0x17, 0x0F, 0x01, 0x0E, 0x0E, 0x11, 0x1F}, // 6
+        {0x00, 0x1E, 0x1D, 0x1B, 0x17, 0x17, 0x17, 0x1F}, // 7
+        {0x11, 0x0E, 0x0E, 0x11, 0x0E, 0x0E, 0x11, 0x1F}}; // 8
+
     public : Game(int size, int minMines, int maxMines)
     {
         _size = size;
-        // scanf("%d", &_totalMines);
-        // _totalMines = _totalMines % (_size * _size);
-        // printf("\nTotal Mines: %d\n", _totalMines);
         _totalMines = RNG(minMines, maxMines + 1);
         _grid = new Cell[_size * _size];
         _end = (_size * 4) - 1;
+
+        lcd.writeCustomCharacter(unopenedCell, 1);
+        lcd.writeCustomCharacter(emptyCell, 2);
+        lcd.writeCustomCharacter(flag, 3);
+        lcd.writeCustomCharacter(mine, 4);
+        lcd.writeCustomCharacter(unopenedCellInverted, 5);
+        lcd.writeCustomCharacter(emptyCellInverted, 6);
+        lcd.writeCustomCharacter(flagInverted, 7);
     }
 
     int* GetNeighbours(int pos)
@@ -197,7 +191,7 @@ class Game
                 randCell = RNG(0, _size * _size);
 
 
-                if (_grid[randCell]._type == 'M' || randCell == pos)
+                if (_grid[randCell]._mine || randCell == pos)
                 {
                     valid = false;
                 }
@@ -215,7 +209,7 @@ class Game
             }
             while (!valid);
 
-            _grid[randCell]._type = 'M';
+            _grid[randCell]._mine = true;
         }
     }
 
@@ -226,7 +220,7 @@ class Game
             // Place numbers using GetNeighbours
             for (int j = 0; j < 8; j++)
             {
-                if (_grid[GetNeighbours(i)[j]]._type == 'M')
+                if (_grid[GetNeighbours(i)[j]]._mine)
                 {
                     _grid[i]._mineCount++;
                 }
@@ -260,7 +254,7 @@ class Game
             // Check neighbours
             for (int i = 0; i < 8; i++)
             {
-                if (_grid[neighbours[i]]._symbol == '+' && _grid[neighbours[i]]._type != 'M' && !Contains(queue, tail, neighbours[i]) && neighbours[i] >= 0 /*dodgey workaround*/)
+                if (!_grid[neighbours[i]]._opened && !_grid[neighbours[i]]._flagged && !_grid[neighbours[i]]._mine && !Contains(queue, tail, neighbours[i]) && neighbours[i] >= 0 /*dodgey workaround*/)
                 {
                     queue[tail++] = neighbours[i];
                 }
@@ -275,7 +269,7 @@ class Game
 
         for (int i = 0; i < 8; i++)
         {
-            if (_grid[neighbours[i]]._symbol == 'F')
+            if (_grid[neighbours[i]]._flagged)
             {
                 flagCount++;
             }
@@ -285,7 +279,7 @@ class Game
         {
             for (int i = 0; i < 8; i++)
             {
-                if (_grid[neighbours[i]]._symbol == '+')
+                if (!_grid[neighbours[i]]._opened && !_grid[neighbours[i]]._flagged)
                 {
                     FloodFill(neighbours[i]);
                 }
@@ -295,49 +289,45 @@ class Game
 
     char GetInput()
     {
-        char input = ' ';
+        DigitalIn A(D8, PullDown);
+        DigitalIn B(D9, PullDown);
+        DigitalIn U(D10, PullDown);
+        DigitalIn D(D11, PullDown);
+        DigitalIn L(D12, PullDown);
+        DigitalIn R(D13, PullDown);
 
-        DigitalIn A (D8, PullDown);
-        DigitalIn B (D9, PullDown);
-        DigitalIn U (D10, PullDown);
-        DigitalIn D (D11, PullDown);
-        DigitalIn L (D12, PullDown);
-        DigitalIn R (D13, PullDown);
-
-        while (input == ' ')
+        while (true)
         {
             if (A)
             {
-                input = 'A';
+                return 'A';
             }
 
             else if (B)
             {
-                input =  'B';
+                return  'B';
             }
 
             else if (U)
             {
-                input = 'U';
+                return 'U';
             }
 
             else if (D)
             {
-                input = 'D';
+                return 'D';
             }
 
             else if (L)
             {
-                input = 'L';
+                return 'L';
             }
 
             else if (R)
             {
-                input = 'R';
+                return 'R';
             }
         }
-
-        return input;
     }
 
     void GameOver()
@@ -347,12 +337,12 @@ class Game
 
         for (int i = 0; i < _size * _size; i++)
         {
-            if (_grid[i]._symbol == '+' && _grid[i]._type != 'M')
+            if (!_grid[i]._mine && !_grid[i]._opened)
             {
                 win = false;
             }
 
-            else if (_grid[i]._symbol == 'X')
+            else if (_grid[i]._mine && _grid[i]._opened)
             {
                 win = false;
                 lose = true;
@@ -362,6 +352,19 @@ class Game
 
         if (win)
         {
+            lcd.writeCustomCharacter(flower, 4);
+
+            for (int i = 0; i < _size * _size; i++) // Reveal all mines
+            {
+                if (_grid[i]._mine)
+                {
+                    _grid[i].Open();
+                    Display();
+                    thread_sleep_for(333);
+                }
+            }
+
+            // Print();
             thread_sleep_for(3000);
             lcd.cls();
             lcd.printf("Congratulations!\nYou Win!");
@@ -374,16 +377,18 @@ class Game
 
         else if (lose)
         {
-            for (int j = 0; j < _size * _size; j++) // Reveal all mines
+            for (int i = 0; i < _size * _size; i++) // Reveal all mines
             {
-                if (_grid[j]._type == 'M')
+                if (_grid[i]._mine)
                 {
-                    _grid[j]._symbol = 'X';
+                    _grid[i].Open();
+                    Display();
+                    thread_sleep_for(167);
                 }
             }
 
-            Display();
-            thread_sleep_for(5000);
+            // Print();
+            thread_sleep_for(2000);
             lcd.cls();
             lcd.printf("Game Over!\nYou Lose...");
 
@@ -437,24 +442,29 @@ class Game
                     _gameInitialized = true;
                 }
 
-                if (_grid[_pos]._symbol == '+')
+                if (!_grid[_pos]._flagged)
                 {
-                    FloodFill(_pos);
+                    if (!_grid[_pos]._opened)
+                    {
+                        FloodFill(_pos);
+                    }
+                    
+                    else
+                    {
+                        Chord(_pos);
+                    }
                 }
 
-                else if (_grid[_pos]._mineCount > 0)
-                {
-                    Chord(_pos);
-                }
+                GameOver();
                 break;
 
             case 'B':
-                if (_grid[_pos]._symbol == '+' && _gameInitialized)
+                if (!_grid[_pos]._opened && !_grid[_pos]._flagged && _gameInitialized)
                 {
                     _grid[_pos].Flag();
                 }
 
-                else if (_grid[_pos]._symbol == 'F')
+                else if (_grid[_pos]._flagged)
                 {
                     _grid[_pos].UnFlag();
                 }
@@ -475,88 +485,85 @@ class Game
             _start += _size;
             _end += _size;
         }
-
-        GameOver();
     }
 
     // Display on LCD
     public : void Display()
     {
-        lcd.locate(10 - _size, 0);
-
-        // char cursor = '#';
-        lcd.writeCustomCharacter(unopenedCell, 1);
-        lcd.writeCustomCharacter(emptyCell, 2);
-        lcd.writeCustomCharacter(flag, 3);
-        lcd.writeCustomCharacter(mine, 4);
-        lcd.writeCustomCharacter(unopenedCellInverted, 5);
-        lcd.writeCustomCharacter(emptyCellInverted, 6);
-        lcd.writeCustomCharacter(flagInverted, 7);
-
         for (int i = _start; i <= _end; i++)
         {
+            if (i % _size == 0)
+            {
+                lcd.locate(10 - _size, (i - _start) / _size); // locates the next line (from 1 to 3) on the LCD display when a full row of the grid has been printed
+            }
+
             if (i == _pos)
             {
-                // lcd.printf("%c ", cursor);
-
-                if (_grid[i]._symbol == '+')
+                if (_grid[i]._opened)
                 {
-                    lcd.printf("%c ", 5);
+                    if (_grid[i]._mine)
+                    {
+                        lcd.printf("%c ", 4);
+                    }
+
+                    else if (_grid[i]._mineCount == 0)
+                    {
+                        lcd.printf("%c ", 6);
+                    }
+
+                    else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
+                    {
+                        lcd.writeCustomCharacter(mineCountsInverted[_grid[i]._mineCount - 1], 8);
+                        lcd.printf("%c ", 8);
+                    }
                 }
 
-                else if (_grid[i]._symbol == '0')
+                else
                 {
-                    lcd.printf("%c ", 6);
-                }
+                    if (_grid[i]._flagged)
+                    {
+                        lcd.printf("%c ", 7);
+                    }
 
-                else if (_grid[i]._symbol == 'F')
-                {
-                    lcd.printf("%c ", 7);
-                }
-
-                else if (_grid[i]._symbol == 'X')
-                {
-                    lcd.printf("%c ", 4);
-                }
-
-                else if (_grid[i]._symbol >= 48 && _grid[i]._symbol <= 56)
-                {
-                    lcd.writeCustomCharacter(mineCountsInverted[_grid[i]._mineCount - 1], 8);
-                    lcd.printf("%c ", 8);
+                    else
+                    {
+                        lcd.printf("%c ", 5);
+                    }
                 }
             }
 
             else
             {
-                if (_grid[i]._symbol == '+')
+                if (_grid[i]._opened)
                 {
-                    lcd.printf("%c ", 1);
-                }
+                    if (_grid[i]._mine)
+                    {
+                        lcd.printf("%c ", 4);
+                    }
 
-                else if (_grid[i]._symbol == '0')
-                {
-                    lcd.printf("%c ", 2);
-                }
+                    else if (_grid[i]._mineCount == 0)
+                    {
+                        lcd.printf("%c ", 2);
+                    }
 
-                else if (_grid[i]._symbol == 'F')
-                {
-                    lcd.printf("%c ", 3);
-                }
-
-                else if (_grid[i]._symbol == 'X')
-                {
-                    lcd.printf("%c ", 4);
+                    else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
+                    {
+                        lcd.printf("%d ", _grid[i]._mineCount);
+                    }
                 }
 
                 else
                 {
-                    lcd.printf("%c ", _grid[i]._symbol);
-                }
-            }
+                    if (_grid[i]._flagged)
+                    {
+                        lcd.printf("%c ", 3);
+                    }
 
-            if ((i + 1) % _size == 0)
-            {
-                lcd.locate(10 - _size, (i + 1 - _start) / _size); // locates the next line (from 1 to 3) on the LCD display when a full row of the grid has been printed
+                    else
+                    {
+                        lcd.printf("%c ", 1);
+                    }
+                }
             }
         }
     }
@@ -567,34 +574,45 @@ class Game
         // for (int i = _start; i <= _end; i++)
         for (int i = 0; i < _size * _size; i++)
         {
-            if (i % _size == 0)
-            {
-                if (i > 0)
-                {
-                    printf("\n");
-                }
-
-                printf("%d. ", i / _size);
-            }
-
             if (i == _pos)
             {
                 printf("@ ");
             }
 
-            // else if (_grid[i]._type == 'M')
-            // {
-            //     printf("X ");
-            // }
+            else if (_grid[i]._opened)
+            {
+                if (_grid[i]._mine)
+                {
+                    printf("X ");
+                }
 
-            // else if (_grid[i]._mineCount > 0)
-            // {
-            //     printf("%d ", _grid[i]._mineCount);
-            // }
+                else if (_grid[i]._mineCount == 0)
+                {
+                    printf("0 ");
+                }
+
+                else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
+                {
+                    printf("%d ", _grid[i]._mineCount);
+                }
+            }
 
             else
             {
-                printf("%c ", _grid[i]._symbol);
+                if (_grid[i]._flagged)
+                {
+                    printf("F ");
+                }
+
+                else
+                {
+                    printf("+ ");
+                }
+            }
+
+            if ((i + 1) % _size == 0)
+            {
+                printf("\n");
             }
         }
 
@@ -606,7 +624,7 @@ class Game
 int main()
 {
     printf("Welcome To Minesweeper!\n\n");
-    Game g(8, 6, 12);
+    Game g(6, 6, 9);
 
     while (true)
     {

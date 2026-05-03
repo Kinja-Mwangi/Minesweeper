@@ -75,8 +75,12 @@ class Game
     Cell* _grid;
     int _pos = 0;
     bool _gameInitialized = false;
-    int _start = 0;
-    int _end;
+    
+    // 2D Camera Viewport Variables
+    int _displayStartX = 0;
+    int _displayStartY = 0;
+    int _displayWidth;
+    int _displayHeight;
 
     // Custom characters
     char unopenedCell[8] = {0x0D, 0x16, 0x1B, 0x0D, 0x16, 0x1B, 0x0D, 0x16};
@@ -89,7 +93,6 @@ class Game
     char unopenedCellInverted[8] = {0x12, 0x09, 0x04, 0x12, 0x09, 0x04, 0x12, 0x09};
     char emptyCellInverted[8] = {0x11, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x0E, 0x11};
     char flagInverted[8] = {0x17, 0x13, 0x11, 0x10, 0x17, 0x17, 0x01, 0x1F};
-    // char mineInverted[8] = {0x1F, 0x0A, 0x11, 0x00, 0x11, 0x0A, 0x1F, 0x1F};
     char mineCountsInverted[8][8] = 
         {{0x1B, 0x13, 0x1B, 0x1B, 0x1B, 0x1B, 0x11, 0x1F}, // 1
         {0x11, 0x0E, 0x1E, 0x1D, 0x1B, 0x17, 0x00, 0x1F}, // 2
@@ -105,7 +108,10 @@ class Game
         _size = size;
         _totalMines = RNG(minMines, maxMines + 1);
         _grid = new Cell[_size * _size];
-        _end = (_size * 4) - 1;
+        
+        // LCD is 20x4, meaning max 10 cells wide (2 chars per cell) and 4 cells high
+        _displayWidth = _size > 10 ? 10 : _size;
+        _displayHeight = _size > 4 ? 4 : _size;
 
         lcd.writeCustomCharacter(unopenedCell, 1);
         lcd.writeCustomCharacter(emptyCell, 2);
@@ -190,7 +196,6 @@ class Game
                 valid = true;
                 randCell = RNG(0, _size * _size);
 
-
                 if (_grid[randCell]._mine || randCell == pos)
                 {
                     valid = false;
@@ -254,7 +259,7 @@ class Game
             // Check neighbours
             for (int i = 0; i < 8; i++)
             {
-                if (!_grid[neighbours[i]]._opened && !_grid[neighbours[i]]._flagged && !_grid[neighbours[i]]._mine && !Contains(queue, tail, neighbours[i]) && neighbours[i] >= 0 /*dodgey workaround*/)
+                if (!_grid[neighbours[i]]._opened && !_grid[neighbours[i]]._flagged && !_grid[neighbours[i]]._mine && !Contains(queue, tail, neighbours[i]) && neighbours[i] >= 0)
                 {
                     queue[tail++] = neighbours[i];
                 }
@@ -360,11 +365,9 @@ class Game
                 {
                     _grid[i].Open();
                     Display();
-                    thread_sleep_for(333);
                 }
             }
 
-            // Print();
             thread_sleep_for(3000);
             lcd.cls();
             lcd.printf("Congratulations!\nYou Win!");
@@ -383,11 +386,9 @@ class Game
                 {
                     _grid[i].Open();
                     Display();
-                    thread_sleep_for(167);
                 }
             }
 
-            // Print();
             thread_sleep_for(2000);
             lcd.cls();
             lcd.printf("Game Over!\nYou Lose...");
@@ -474,94 +475,112 @@ class Game
                 break;
         }
 
-        if (_pos < _start)
+        // Camera Handling for both X and Y
+        int posX = _pos % _size;
+        int posY = _pos / _size;
+
+        // Horizontal Scrolling Checks
+        if (posX < _displayStartX)
         {
-            _start -= _size;
-            _end -= _size;
+            _displayStartX = posX;
         }
 
-        else if (_pos > _end)
+        else if (posX - _displayStartX >= _displayWidth)
         {
-            _start += _size;
-            _end += _size;
+            _displayStartX = posX - _displayWidth + 1;
+        }
+
+        // Vertical Scrolling Checks
+        if (posY < _displayStartY)
+        {
+            _displayStartY = posY;
+        }
+        
+        else if (posY - _displayStartY >= _displayHeight)
+        {
+            _displayStartY = posY - _displayHeight + 1;
         }
     }
 
     // Display on LCD
     public : void Display()
     {
-        for (int i = _start; i <= _end; i++)
+        for (int y = 0; y < _displayHeight; y++)
         {
-            if (i % _size == 0)
+            // Center the display logically based on visible width 
+            lcd.locate(10 - _displayWidth, y); 
+            
+            for (int x = 0; x < _displayWidth; x++)
             {
-                lcd.locate(10 - _size, (i - _start) / _size); // locates the next line (from 1 to 3) on the LCD display when a full row of the grid has been printed
-            }
+                // Translate camera coordinates to absolute grid index
+                int i = ((y + _displayStartY) * _size) + x + _displayStartX;
 
-            if (i == _pos)
-            {
-                if (_grid[i]._opened)
+                if (i == _pos)
                 {
-                    if (_grid[i]._mine)
+                    if (_grid[i]._opened)
                     {
-                        lcd.printf("%c ", 4);
+                        if (_grid[i]._mine)
+                        {
+                            lcd.printf("%c ", 4);
+                        }
+                        
+                        else if (_grid[i]._mineCount == 0)
+                        {
+                            lcd.printf("%c ", 6);
+                        }
+
+                        else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
+                        {
+                            lcd.writeCustomCharacter(mineCountsInverted[_grid[i]._mineCount - 1], 8);
+                            lcd.printf("%c ", 8);
+                        }
                     }
 
-                    else if (_grid[i]._mineCount == 0)
+                    else
                     {
-                        lcd.printf("%c ", 6);
-                    }
+                        if (_grid[i]._flagged)
+                        {
+                            lcd.printf("%c ", 7);
+                        }
 
-                    else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
-                    {
-                        lcd.writeCustomCharacter(mineCountsInverted[_grid[i]._mineCount - 1], 8);
-                        lcd.printf("%c ", 8);
+                        else
+                        {
+                            lcd.printf("%c ", 5);
+                        }
                     }
                 }
 
                 else
                 {
-                    if (_grid[i]._flagged)
+                    if (_grid[i]._opened)
                     {
-                        lcd.printf("%c ", 7);
+                        if (_grid[i]._mine)
+                        {
+                            lcd.printf("%c ", 4);
+                        }
+
+                        else if (_grid[i]._mineCount == 0)
+                        {
+                            lcd.printf("%c ", 2);
+                        }
+
+                        else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
+                        {
+                            lcd.printf("%d ", _grid[i]._mineCount);
+                        }
                     }
 
                     else
                     {
-                        lcd.printf("%c ", 5);
-                    }
-                }
-            }
+                        if (_grid[i]._flagged)
+                        {
+                            lcd.printf("%c ", 3);
+                        }
 
-            else
-            {
-                if (_grid[i]._opened)
-                {
-                    if (_grid[i]._mine)
-                    {
-                        lcd.printf("%c ", 4);
-                    }
-
-                    else if (_grid[i]._mineCount == 0)
-                    {
-                        lcd.printf("%c ", 2);
-                    }
-
-                    else if (_grid[i]._mineCount > 0 && _grid[i]._mineCount <= 8)
-                    {
-                        lcd.printf("%d ", _grid[i]._mineCount);
-                    }
-                }
-
-                else
-                {
-                    if (_grid[i]._flagged)
-                    {
-                        lcd.printf("%c ", 3);
-                    }
-
-                    else
-                    {
-                        lcd.printf("%c ", 1);
+                        else
+                        {
+                            lcd.printf("%c ", 1);
+                        }
                     }
                 }
             }
@@ -571,7 +590,6 @@ class Game
     // Display on serial port terminal (Coolterm)
     public : void Print()
     {
-        // for (int i = _start; i <= _end; i++)
         for (int i = 0; i < _size * _size; i++)
         {
             if (i == _pos)
@@ -616,7 +634,6 @@ class Game
             }
         }
 
-        // printf("\n\nStart: %d\nEnd: %d\nPos: %d\n", _start, _end, _pos);
         printf("\n\n");
     }
 };
@@ -624,7 +641,7 @@ class Game
 int main()
 {
     printf("Welcome To Minesweeper!\n\n");
-    Game g(6, 6, 9);
+    Game g(14, 10, 18); // Size > 10 horizontally or > 4 vertically will trigger scrolling
 
     while (true)
     {

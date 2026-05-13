@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-
 #include "Cell.h"
+
+#include <vector>
 
 enum class GameState : std::uint8_t
 {
@@ -18,7 +18,9 @@ class Map
     int m_Rows;
     int m_Mines;
 
+    // Column then row
     std::vector<std::vector<Cell>> m_Grid;
+
     GameState m_State;
 
 public:
@@ -26,16 +28,16 @@ public:
 
     GameState getState() const;
     Cell getCell(int x, int y) const;
-    std::vector<Cell> getAdjacentCells(int x, int y) const;
+    std::vector<Point> getAdjacentPoints(Point position) const;
 
     void reset();
-    void openSquare(int x, int y);
-    void flagSquare(int x, int y);
+    void openSquare(Point position);
+    void flagSquare(Point position);
 
 private:
     bool hasWon() const;
     bool inInBounds(int x, int y) const;
 
-    void generateMines(int startX, int startY);
-    void recursiveOpen(int startX, int startY);
+    void generateMines(Point position);
+    void recursiveOpen(Point start);
 };

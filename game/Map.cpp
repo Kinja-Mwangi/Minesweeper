@@ -1,10 +1,11 @@
 #include "Map.h"
 
 #include <algorithm>
-#include "Random.h"
+#include <array>
+#include "../utils/Random.h"
 
 // To be used by the recursiveOpen function soon
-auto deltas = std::array<8, Point>{
+auto deltas = std::array<Point, 8>{
     Point(-1, -1), // Top left
     Point( 0, -1), // Top centre
     Point( 1, -1), // Top right
